@@ -21,6 +21,8 @@ import ChangePassword from '../screens/app/ChangePassword';
 import About from '../screens/app/About';
 import Tutorials from '../screens/app/Tutorials';
 import Privacy from '../screens/app/Privacy';
+import Terms from '../screens/app/Terms';
+import Plans from '../screens/app/Plans';
 
 
 const Tab = createBottomTabNavigator();
@@ -196,6 +198,16 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Privacy"
         component={Privacy}
+      />
+
+      <Stack.Screen
+        name="Terms"
+        component={Terms}
+      />
+
+      <Stack.Screen
+        name="Plans"
+        component={Plans}
       />
     </Stack.Navigator>
   );

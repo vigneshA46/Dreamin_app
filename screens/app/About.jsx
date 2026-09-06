@@ -20,7 +20,7 @@ const APP_VERSION = '1.0.0';
 
 // Update these to your real links
 const WEBSITE_URL = 'https://dreamintraders.in';
-const SUPPORT_EMAIL = 'support@dreamintraders.in';
+const SUPPORT_EMAIL = 'dreaminalgodevelopmement@gmail.com';
 const CONTACT_EMAIL = 'dreaminalgo@gmail.com';
 
 const COLORS = {

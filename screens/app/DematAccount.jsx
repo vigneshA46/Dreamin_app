@@ -38,20 +38,12 @@ const COLORS = {
   When `logo` is null the broker's initial is shown instead.
 */
 const BROKERS = [
-  {
+  /* {
     key: 'dhan',
     name: 'Dhan',
     url: 'https://login.dhan.co/',
     tint: '#E8F1FF',
     accent: '#2F6FED',
-    logo: null,
-  },
-  {
-    key: 'zebu',
-    name: 'Zebu',
-    url: 'https://oa.zebuetrade.com/',
-    tint: '#FFF1E0',
-    accent: '#EA580C',
     logo: null,
   },
   {
@@ -76,6 +68,14 @@ const BROKERS = [
     url: 'https://signup.zerodha.com/',
     tint: '#E6F7EC',
     accent: '#16A34A',
+    logo: null,
+  }, */
+  {
+    key: 'zebu',
+    name: 'Zebu',
+    url: 'https://oa.zebuetrade.com/',
+    tint: '#FFF1E0',
+    accent: '#EA580C',
     logo: null,
   },
 ];

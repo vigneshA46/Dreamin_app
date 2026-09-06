@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Platform,
   RefreshControl,
+  Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -149,6 +151,167 @@ export default function Home() {
       console.log('deployments error', err);
     }
   }, []);
+
+  const refreshTodayDeployments = React.useCallback(async () => {
+  try {
+    const res = await apiRequest(
+      'GET',
+      '/api/deployments/user/today'
+    );
+
+    setTodayDeployment(res || []);
+  } catch (err) {
+    console.log('refresh deployments error', err);
+  }
+}, []);
+
+const handleExitStrategy = React.useCallback(
+  (deployment) => {
+    if (!deployment?.id) {
+      Alert.alert('Error', 'Deployment ID not found');
+      return;
+    }
+
+    Alert.alert(
+      'Exit Strategy',
+      'Are you sure you want to exit this strategy?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Exit',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiRequest(
+                'POST',
+                `/api/deployments/userdep/stopdep/${deployment.id}`
+              );
+
+              Alert.alert(
+                'Success',
+                'Strategy exited successfully'
+              );
+
+              await refreshTodayDeployments();
+            } catch (err) {
+              console.log('exit strategy error', err);
+
+              Alert.alert(
+                'Error',
+                err?.message || 'Failed to exit strategy'
+              );
+            }
+          },
+        },
+      ]
+    );
+  },
+  [refreshTodayDeployments]
+);
+
+const handleDeleteStrategy = React.useCallback(
+  (strategy, deployment) => {
+    if (!strategy?.id) {
+      Alert.alert('Error', 'Strategy ID not found');
+      return;
+    }
+
+    if (!deployment?.broker_account_id) {
+      Alert.alert(
+        'Error',
+        'Broker account ID not found'
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Delete Strategy',
+      'Are you sure you want to delete this strategy?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiRequest(
+                'POST',
+                `/api/deployments/stopdeployment?strategy_id=${strategy.id}&broker_account_id=${deployment.broker_account_id}`
+              );
+
+              Alert.alert(
+                'Deleted',
+                'Strategy deleted successfully'
+              );
+
+              await refreshTodayDeployments();
+            } catch (err) {
+              console.log('delete strategy error', err);
+
+              Alert.alert(
+                'Error',
+                err?.message || 'Failed to delete strategy'
+              );
+            }
+          },
+        },
+      ]
+    );
+  },
+  [refreshTodayDeployments]
+  );
+
+  const isStrategyRunning = React.useCallback(
+  (strategy) => {
+    if (!strategy?.starting_time || !strategy?.ending_time) {
+      return false;
+    }
+
+    const now = new Date();
+
+    const currentMinutes =
+      now.getHours() * 60 + now.getMinutes();
+
+    const [startHour, startMinute] =
+      String(strategy.starting_time)
+        .slice(0, 5)
+        .split(':')
+        .map(Number);
+
+    const [endHour, endMinute] =
+      String(strategy.ending_time)
+        .slice(0, 5)
+        .split(':')
+        .map(Number);
+
+    const startMinutes =
+      startHour * 60 + startMinute;
+
+    const endMinutes =
+      endHour * 60 + endMinute;
+
+    // Normal same-day strategy
+    if (startMinutes <= endMinutes) {
+      return (
+        currentMinutes >= startMinutes &&
+        currentMinutes <= endMinutes
+      );
+    }
+
+    // Cross-midnight strategy
+    return (
+      currentMinutes >= startMinutes ||
+      currentMinutes <= endMinutes
+    );
+  },
+  []
+  );
 
   const fetchDatesForStrategy = React.useCallback(async (strategyId) => {
     try {
@@ -307,7 +470,14 @@ export default function Home() {
         <View style={styles.topBar}>
           <View style={styles.brandRow}>
             <View style={styles.logoMark}>
-              <Feather name="activity" size={16} color="#FFFFFF" />
+              <Image
+                source={require('../../assets/icon.png')}
+                style={{
+                  width: 25,
+                  height: 25,
+                  borderRadius: 6,
+                  }}
+                />
             </View>
             <Text style={styles.brandText}>
               Dreamin <Text style={styles.brandTextAccent}>Algo</Text>
@@ -325,9 +495,9 @@ export default function Home() {
               {notifications.length > 0 && <View style={styles.notifDot} />}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.avatar}>
+            {/* <TouchableOpacity style={styles.avatar}>
               <Text style={styles.avatarText}>{(user.fullname || 'U').charAt(0)}</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
 
@@ -368,6 +538,8 @@ export default function Home() {
         </View>
 
         {/* Stat grid */}
+
+{/*         
         <View style={styles.statGrid}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Active Strategies</Text>
@@ -399,6 +571,7 @@ export default function Home() {
             </Text>
           </View>
         </View>
+ */}
 
         {/* Strategy status */}
         <Text style={styles.sectionTitle}>Strategy Status</Text>
@@ -440,23 +613,60 @@ export default function Home() {
             onToggleExpand={() => handleToggleExpand(strategy.id)}
             live={liveData[strategy.id]}
             deployment={deploymentMap[strategy.id]}
+
+            /* Deployment actions */
+            isDeployed={
+              !!deploymentMap[strategy.id]
+            }
+
+            isRunning={isStrategyRunning(strategy)}
+
+            onExitStrategy={() =>
+              handleExitStrategy(
+                deploymentMap[strategy.id]
+                )
+              }
+
+            onDeleteStrategy={() =>
+              handleDeleteStrategy(
+              strategy,
+              deploymentMap[strategy.id]
+              )
+              }
+
             dates={dates[strategy.id] || []}
             dateWisePnL={dateWisePnL[strategy.id] || {}}
             selectedDate={selectedDate[strategy.id]}
+
             onSelectDate={(date) => {
-              setSelectedDate((prev) => ({ ...prev, [strategy.id]: date }));
-              fetchLegsByDate(strategy.id, date);
-            }}
-            legs={legs[strategy.id] || []}
-            legPnls={legPnls[strategy.id] || {}}
-            cumulativePnl={cumulativePnl[strategy.id]}
-            onSelectLeg={(leg) => handleSelectLeg(strategy.id, leg)}
+              setSelectedDate((prev) => ({
+              ...prev,
+              [strategy.id]: date,
+              }));
+
+              fetchLegsByDate(
+              strategy.id,
+              date
+              );
+              }}
+
+              legs={legs[strategy.id] || []}
+              legPnls={legPnls[strategy.id] || {}}
+              cumulativePnl={cumulativePnl[strategy.id]}
+                
+              onSelectLeg={(leg) =>
+                  handleSelectLeg(
+                  strategy.id,
+                  leg
+                )
+                }
+
             onViewStats={() =>
-              tab === 'deployed'
-                ? fetchLiveStatistics(strategy.id)
-                : fetchPaperStatistics(strategy.id)
+            tab === 'deployed'
+              ? fetchLiveStatistics(strategy.id)
+            : fetchPaperStatistics(strategy.id)
             }
-          />
+            />
         ))}
       </ScrollView>
 
@@ -489,7 +699,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 30,
   },
   brandRow: { flexDirection: 'row', alignItems: 'center' },
   logoMark: {
@@ -601,3 +811,4 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
 });
+ 

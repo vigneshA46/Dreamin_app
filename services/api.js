@@ -1,9 +1,10 @@
 import axios from 'axios';
 
 const domainurl = 'https://algoapi.dreamintraders.in';
+const localurl = "http://localhost:5000";
 
 const api = axios.create({
-  baseURL: domainurl,
+  baseURL: domainurl, // 🍪 cookies only sent to same origin
   withCredentials: true, // 🍪 cookies auto sent
   headers: { 'Content-Type': 'application/json' },
 });

@@ -34,7 +34,7 @@ const COLORS = {
 };
 
 const BROKERS = [
-  {
+  /* {
     name: 'Dhan',
     key: 'dhan',
     initial: 'D',
@@ -53,16 +53,16 @@ const BROKERS = [
     available: true,
   },
   {
-    name: 'Zebu',
-    key: 'zebumynt',
-    initial: 'Z',
-    available: true,
-  },
-  {
     name: 'Angel One',
     key: 'angelone',
     initial: 'A',
     available: false,
+  }, */
+  {
+    name: 'Zebu',
+    key: 'zebumynt',
+    initial: 'Z',
+    available: true,
   },
 ];
 

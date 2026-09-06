@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Dreamin_app",
+    "name": "Dreamin Algo",
     "slug": "Dreamin_app",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,18 +13,23 @@
       "package": "com.dreamin.algo",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundImage": "./assets/icon.png",
+        "monochromeImage": "./assets/icon.png",
+        "versionCode": 3
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
     "extra": {
       "eas": {
         "projectId": "fabe2d9a-68c8-43f5-9521-2a7bdd3f7c16"
       }
-    }
+    },
+    "plugins": [
+      "expo-sharing"
+    ]
   }
 }
+ 

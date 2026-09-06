@@ -1,11 +1,29 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  ActivityIndicator,
+  Modal,
+} from 'react-native';
+
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
 import { StatusBar } from 'expo-status-bar';
 import { Feather } from '@expo/vector-icons';
 
-// Keep in sync with the tabBarStyle height/paddingTop/paddingBottom set in AppNavigator.jsx
-const BASE_TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 60 : 54;
+import { apiRequest } from '../../services/api';
+import { useUser } from '../../context/UserContext';
+
+// Keep in sync with the tabBarStyle height/paddingTop/paddingBottom
+const BASE_TAB_BAR_HEIGHT =
+  Platform.OS === 'ios' ? 60 : 54;
 
 const COLORS = {
   navy: '#0F1B3D',
@@ -20,19 +38,6 @@ const COLORS = {
   border: '#ECEEF3',
   tokenBg: '#E9F0FF',
   iconBg: '#EEF2FF',
-};
-
-// Replace with real values from your API / store / auth context.
-const user = {
-  name: 'Vignesh',
-  email: 'vignesh@email.com',
-  tokens: 375,
-};
-
-const stats = {
-  activeStrategies: 2,
-  totalTrades: 46,
-  winRate: 65,
 };
 
 const ACCOUNT_ITEMS = [
@@ -64,6 +69,12 @@ const INFO_ITEMS = [
     screen: 'About',
   },
   {
+    icon: 'dollar-sign',
+    title: 'Plans & Pricing',
+    subtitle: 'Explore our plans',
+    screen: 'Plans',
+  },
+  {
     icon: 'book-open',
     title: 'Tutorials',
     subtitle: 'Learn how to use the app',
@@ -76,123 +87,414 @@ const INFO_ITEMS = [
     screen: 'Privacy',
     danger: true,
   },
+  {
+    icon: 'file-text',
+    title: 'Terms & Conditions',
+    subtitle: 'Terms of use',
+    screen: 'Terms',
+  },
+  
 ];
 
-function ListRow({ icon, title, subtitle, danger, onPress }) {
+function ListRow({
+  icon,
+  title,
+  subtitle,
+  danger,
+  onPress,
+}) {
   return (
-    <TouchableOpacity style={styles.listRow} activeOpacity={0.7} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.listRow}
+      activeOpacity={0.7}
+      onPress={onPress}
+    >
       <View style={styles.listIconWrap}>
-        <Feather name={icon} size={16} color={danger ? COLORS.label : COLORS.blue} />
+        <Feather
+          name={icon}
+          size={16}
+          color={
+            danger
+              ? COLORS.label
+              : COLORS.blue
+          }
+        />
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={[styles.listTitle, danger && { color: COLORS.label }]}>{title}</Text>
-        <Text style={styles.listSubtitle}>{subtitle}</Text>
+        <Text
+          style={[
+            styles.listTitle,
+            danger && {
+              color: COLORS.label,
+            },
+          ]}
+        >
+          {title}
+        </Text>
+
+        <Text style={styles.listSubtitle}>
+          {subtitle}
+        </Text>
       </View>
 
-      <Feather name="chevron-right" size={18} color={COLORS.textGray} />
+      <Feather
+        name="chevron-right"
+        size={18}
+        color={COLORS.textGray}
+      />
     </TouchableOpacity>
   );
 }
 
 export default function Profile({ navigation }) {
   const insets = useSafeAreaInsets();
-  const tabBarHeight = BASE_TAB_BAR_HEIGHT + insets.bottom;
+
+  const {logout} = useUser();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+
+  const tabBarHeight =
+    BASE_TAB_BAR_HEIGHT + insets.bottom;
+
+  /* =========================
+     FETCH LOGGED-IN USER
+  ========================= */
+
+  const fetchUser = async () => {
+    try {
+      setLoading(true);
+
+      const res = await apiRequest(
+        'POST',
+        '/api/users/me'
+      );
+
+      console.log(
+        'PROFILE USER:',
+        res
+      );
+
+      setUser(res);
+    } catch (error) {
+      console.log(
+        'PROFILE USER ERROR:',
+        error
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  /* =========================
+     LOADING
+  ========================= */
+
+  if (loading) {
+    return (
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={['top']}
+      >
+        <StatusBar style="dark" />
+
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator
+            size="small"
+            color={COLORS.blue}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* =========================
+     USER FALLBACK
+  ========================= */
+
+  const userName =
+    user?.fullname || 'User';
+
+  const userEmail =
+    user?.email || '-';
+
+  const userPhone =
+    user?.mobile_number ||
+    user?.mobile ||
+    user?.phone ||
+    '-';
+
+  const userTokens =
+    user?.tokens ?? 0;
+
+  const avatarLetter =
+    userName.charAt(0).toUpperCase();
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top']}
+    >
       <StatusBar style="dark" />
+
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: tabBarHeight + 24 },
+          {
+            paddingBottom:
+              tabBarHeight + 24,
+          },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.headerTitle}>Profile</Text>
 
-        {/* User card */}
+        {/* =========================
+            HEADER
+        ========================= */}
+
+        <Text style={styles.headerTitle}>
+          Profile
+        </Text>
+
+        {/* =========================
+            USER
+        ========================= */}
+
         <View style={styles.userRow}>
+
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
-          </View>
-
-          <View>
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
-          </View>
-        </View>
-
-        {/* Tokens row */}
-        <View style={styles.tokensRow}>
-          <View style={styles.tokenPill}>
-            <Text style={styles.tokenPillText}>{user.tokens} Tokens</Text>
-          </View>
-
-          <TouchableOpacity style={styles.buyMoreButton} activeOpacity={0.85}>
-            <Feather name="plus" size={13} color={COLORS.navy} />
-            <Text style={styles.buyMoreText}>Buy More</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Stat grid */}
-        <View style={styles.statRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.activeStrategies}</Text>
-            <Text style={styles.statLabel}>Active Strategies</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.totalTrades}</Text>
-            <Text style={styles.statLabel}>Total Trades</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: COLORS.green }]}>
-              {stats.winRate}%
+            <Text style={styles.avatarText}>
+              {avatarLetter}
             </Text>
-            <Text style={styles.statLabel}>Win Rate</Text>
           </View>
+
+          <View style={styles.userDetails}>
+
+            <Text style={styles.userName}>
+              {userName}
+            </Text>
+
+            <Text style={styles.userEmail}>
+              {userEmail}
+            </Text>
+
+           {/*  <View style={styles.phoneRow}>
+              <Feather
+                name="phone"
+                size={12}
+                color={COLORS.textGray}
+              />
+
+              <Text style={styles.userPhone}>
+                {userPhone}
+              </Text>
+            </View> */}
+
+          </View>
+
         </View>
 
-        {/* Account section */}
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
-        <View style={styles.listGroup}>
-          {ACCOUNT_ITEMS.map((item, index) => (
-            <React.Fragment key={item.title}>
-            <ListRow
-              {...item}
-              onPress={() => navigation.getParent()?.navigate(item.screen)}
+        {/* =========================
+            TOKENS
+        ========================= */}
+
+        <View style={styles.tokensRow}>
+
+          <View style={styles.tokenPill}>
+            <Text style={styles.tokenPillText}>
+              {userTokens} Tokens
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.buyMoreButton}
+            activeOpacity={0.85}
+            onPress={() =>navigation.getParent()?.navigate('Plans')}
+          >
+            <Feather
+              name="plus"
+              size={13}
+              color={COLORS.navy}
             />
 
-              {index < ACCOUNT_ITEMS.length - 1 && (
-              <View style={styles.rowDivider} />
-              )}
-            </React.Fragment>
-        ))}
+            <Text style={styles.buyMoreText}>
+              Buy More
+            </Text>
+          </TouchableOpacity>
+
         </View>
 
-        {/* Information section */}
-        <Text style={styles.sectionLabel}>INFORMATION</Text>
-        <View style={styles.listGroup}>
-          {INFO_ITEMS.map((item, index) => (
-            <React.Fragment key={item.title}>
-            <ListRow
-              {...item}
-              onPress={() => navigation.getParent()?.navigate(item.screen)}
-            />
+        {/* =========================
+            ACCOUNT
+        ========================= */}
 
-              {index < INFO_ITEMS.length - 1 && (
-              <View style={styles.rowDivider} />
-              )}
+        <Text style={styles.sectionLabel}>
+          ACCOUNT
+        </Text>
+
+        <View style={styles.listGroup}>
+
+          {ACCOUNT_ITEMS.map(
+            (item, index) => (
+              <React.Fragment
+                key={item.title}
+              >
+
+                <ListRow
+                  {...item}
+                  onPress={() =>
+                    navigation
+                      .getParent()
+                      ?.navigate(
+                        item.screen
+                      )
+                  }
+                />
+
+                {index <
+                  ACCOUNT_ITEMS.length - 1 && (
+                  <View
+                    style={
+                      styles.rowDivider
+                    }
+                  />
+                )}
+
               </React.Fragment>
-))}
+            )
+          )}
+
         </View>
 
-        {/* Logout — not in the reference screenshot but standard on a profile
-            screen; remove if you have it living elsewhere (e.g. a settings screen). */}
-        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.85}>
-          <Feather name="log-out" size={16} color={COLORS.red} />
-          <Text style={styles.logoutText}>Logout</Text>
+        {/* =========================
+            INFORMATION
+        ========================= */}
+
+        <Text style={styles.sectionLabel}>
+          INFORMATION
+        </Text>
+
+        <View style={styles.listGroup}>
+
+          {INFO_ITEMS.map(
+            (item, index) => (
+              <React.Fragment
+                key={item.title}
+              >
+
+                <ListRow
+                  {...item}
+                  onPress={() =>
+                    navigation
+                      .getParent()
+                      ?.navigate(
+                        item.screen
+                      )
+                  }
+                />
+
+                {index <
+                  INFO_ITEMS.length - 1 && (
+                  <View
+                    style={
+                      styles.rowDivider
+                    }
+                  />
+                )}
+
+              </React.Fragment>
+            )
+          )}
+
+        </View>
+
+        {/* =========================
+            LOGOUT
+        ========================= */}
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          activeOpacity={0.85}
+          onPress={() => setLogoutModalVisible(true)}
+        >
+          <Feather
+            name="log-out"
+            size={16}
+            color={COLORS.red}
+          />
+
+          <Text style={styles.logoutText}>
+            Logout
+          </Text>
         </TouchableOpacity>
+
+        <Modal
+  visible={logoutModalVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setLogoutModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+
+    <View style={styles.logoutModal}>
+
+      {/* Icon */}
+      <View style={styles.logoutIconContainer}>
+        <Feather
+          name="log-out"
+          size={24}
+          color={COLORS.red}
+        />
+      </View>
+
+      {/* Title */}
+      <Text style={styles.logoutModalTitle}>
+        Logout
+      </Text>
+
+      {/* Description */}
+      <Text style={styles.logoutModalMessage}>
+        Are you sure you want to logout from your account?
+      </Text>
+
+      {/* Buttons */}
+      <View style={styles.logoutModalButtons}>
+
+        <TouchableOpacity
+          style={styles.cancelButton}
+          activeOpacity={0.8}
+          onPress={() => setLogoutModalVisible(false)}
+        >
+          <Text style={styles.cancelButtonText}>
+            Cancel
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.confirmLogoutButton}
+          activeOpacity={0.8}
+          onPress={async () => {
+            setLogoutModalVisible(false);
+            await logout();
+          }}
+        >
+          <Text style={styles.confirmLogoutText}>
+            Logout
+          </Text>
+        </TouchableOpacity>
+
+      </View>
+
+    </View>
+
+  </View>
+</Modal>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -203,10 +505,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
+
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 8,
   },
+
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
@@ -214,12 +518,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  // User row
+  /* =========================
+     USER
+  ========================= */
+
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
   },
+
   avatar: {
     width: 56,
     height: 56,
@@ -229,28 +537,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 14,
   },
+
   avatarText: {
     fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
   },
+
+  userDetails: {
+    flex: 1,
+  },
+
   userName: {
     fontSize: 17,
     fontWeight: '700',
     color: COLORS.textDark,
     marginBottom: 2,
   },
+
   userEmail: {
     fontSize: 13,
     color: COLORS.blue,
+    marginBottom: 4,
   },
 
-  // Tokens
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  userPhone: {
+    fontSize: 12,
+    color: COLORS.textGray,
+    marginLeft: 5,
+  },
+
+  /* =========================
+     TOKENS
+  ========================= */
+
   tokensRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
+
   tokenPill: {
     backgroundColor: COLORS.tokenBg,
     borderRadius: 20,
@@ -258,11 +589,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginRight: 10,
   },
+
   tokenPillText: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.blue,
   },
+
   buyMoreButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -272,6 +605,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
+
   buyMoreText: {
     fontSize: 12,
     fontWeight: '700',
@@ -279,34 +613,10 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
-  // Stat grid
-  statRow: {
-    flexDirection: 'row',
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.cardBg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.textDark,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 10,
-    color: COLORS.textGray,
-    textAlign: 'center',
-  },
+  /* =========================
+     SECTION
+  ========================= */
 
-  // Section
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
@@ -315,6 +625,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 4,
   },
+
   listGroup: {
     backgroundColor: COLORS.cardBg,
     borderWidth: 1,
@@ -323,12 +634,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     overflow: 'hidden',
   },
+
   listRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
+
   listIconWrap: {
     width: 34,
     height: 34,
@@ -338,23 +651,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
+
   listTitle: {
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.blue,
     marginBottom: 2,
   },
+
   listSubtitle: {
     fontSize: 11,
     color: COLORS.textGray,
   },
+
   rowDivider: {
     height: 1,
     backgroundColor: COLORS.border,
     marginLeft: 60,
   },
 
-  // Logout
+  /* =========================
+     LOGOUT
+  ========================= */
+
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -365,10 +684,99 @@ const styles = StyleSheet.create({
     height: 50,
     marginBottom: 8,
   },
+
   logoutText: {
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.red,
     marginLeft: 8,
   },
+
+  /* =========================
+     LOADING
+  ========================= */
+
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  paddingHorizontal: 24,
+},
+
+logoutModal: {
+  width: '100%',
+  backgroundColor: '#FFFFFF',
+  borderRadius: 22,
+  padding: 24,
+  alignItems: 'center',
+},
+
+logoutIconContainer: {
+  width: 54,
+  height: 54,
+  borderRadius: 27,
+  backgroundColor: '#FFF1F2',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 16,
+},
+
+logoutModalTitle: {
+  fontSize: 20,
+  fontWeight: '800',
+  color: COLORS.text,
+  marginBottom: 8,
+},
+
+logoutModalMessage: {
+  fontSize: 14,
+  lineHeight: 21,
+  color: COLORS.gray,
+  textAlign: 'center',
+  marginBottom: 24,
+},
+
+logoutModalButtons: {
+  flexDirection: 'row',
+  width: '100%',
+  gap: 10,
+},
+
+cancelButton: {
+  flex: 1,
+  height: 46,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: '#E5E7EB',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+cancelButtonText: {
+  fontSize: 14,
+  fontWeight: '700',
+  color: '#374151',
+},
+
+confirmLogoutButton: {
+  flex: 1,
+  height: 46,
+  borderRadius: 12,
+  backgroundColor: COLORS.red,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+confirmLogoutText: {
+  fontSize: 14,
+  fontWeight: '700',
+  color: '#FFFFFF',
+},
 });
